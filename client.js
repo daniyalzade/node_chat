@@ -470,7 +470,6 @@ $(document).ready(function() {
   //try joining the chat when the user clicks the connect button
   $("#connectButton").click(function () {
     //lock the UI while waiting for a response
-    console.log('connecting');
     showLoad();
     var nick = $("#nickInput").attr("value");
 

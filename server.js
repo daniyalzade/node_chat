@@ -99,7 +99,6 @@ function getChatRoom(req) {
   var pathElems = url.parse(req.url).pathname.split('/');
   pathElems = pathElems.filter(function(elem) { return elem.length } );
   var chatRoom = pathElems[0];
-  console.log('chatRoom: ' + chatRoom + ', pathElems:' + pathElems);
   return chatRoom;
 }
 
@@ -109,11 +108,9 @@ function getSessionsFromReq(req) {
 
 function getSessions(chatRoom) {
   if (!allSessions[chatRoom]) {
-    console.log('creating new session: ' + chatRoom);
     allSessions[chatRoom] = {};
   }
   var sessions = allSessions[chatRoom];
-  console.log('returning sessions ' + allSessions[chatRoom] + ', cr: ' + chatRoom + ', allSessions: ' + allSessions);
   return sessions;
 }
 
@@ -216,7 +213,6 @@ fu.get("/part", function (req, res) {
 });
 
 fu.get("/recv", function (req, res) {
-  console.log('recv');
   if (!qs.parse(url.parse(req.url).query).since) {
     res.simpleJSON(400, { error: "Must supply since parameter" });
     return;
@@ -237,7 +233,6 @@ fu.get("/recv", function (req, res) {
 });
 
 fu.get("/send", function (req, res) {
-  console.log('send');
   var id = qs.parse(url.parse(req.url).query).id;
   var text = qs.parse(url.parse(req.url).query).text;
 
