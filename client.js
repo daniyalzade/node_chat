@@ -248,6 +248,12 @@ function updateRSS () {
   }
 }
 
+function updateChatRoom () {
+  if (starttime) {
+    $("#chatRoom").text(getChatRoom());
+  }
+}
+
 function updateUptime () {
   if (starttime) {
     $("#uptime").text(starttime.toRelativeTime());
@@ -314,7 +320,7 @@ function longPoll (data) {
   //make another request
   $.ajax({ cache: false
          , type: "GET"
-         , url: "/recv"
+         , url: getEndpoint("/recv")
          , dataType: "json"
          , data: { since: CONFIG.last_message_time, id: CONFIG.id }
          , error: function () {
@@ -340,7 +346,7 @@ function send(msg) {
   if (CONFIG.debug === false) {
     // XXX should be POST
     // XXX should add to messages immediately
-    jQuery.get("/send", {id: CONFIG.id, text: msg}, function (data) { }, "json");
+    jQuery.get(getEndpoint("/send"), {id: CONFIG.id, text: msg}, function (data) { }, "json");
   }
 }
 
@@ -361,6 +367,7 @@ function showLoad () {
 
 //transition the page to the main chat view, putting the cursor in the textfield
 function showChat (nick) {
+  $("#log").show();
   $("#toolbar").show();
   $("#entry").focus();
 
@@ -398,6 +405,7 @@ function onConnect (session) {
   rss         = session.rss;
   updateRSS();
   updateUptime();
+  updateChatRoom();
 
   //update the UI to show the chat
   showChat(CONFIG.nick);
@@ -422,9 +430,25 @@ function outputUsers () {
   return false;
 }
 
+function getChatRoom() {
+  var vars = [], hash;
+  var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+  for(var i = 0; i < hashes.length; i++)
+  {
+    hash = hashes[i].split('=');
+    vars.push(hash[0]);
+    vars[hash[0]] = hash[1];
+  }
+  var chatRoom = vars['chatRoom'] || '';
+  return chatRoom;
+}
+
+function getEndpoint(method) {
+  return getChatRoom() + method;
+}
 //get a list of the users presently in the room, and add it to the stream
 function who () {
-  jQuery.get("/who", {}, function (data, status) {
+  jQuery.get(getEndpoint("/who"), {}, function (data, status) {
     if (status != "success") return;
     nicks = data.nicks;
     outputUsers();
@@ -446,6 +470,7 @@ $(document).ready(function() {
   //try joining the chat when the user clicks the connect button
   $("#connectButton").click(function () {
     //lock the UI while waiting for a response
+    console.log('connecting');
     showLoad();
     var nick = $("#nickInput").attr("value");
 
@@ -467,7 +492,7 @@ $(document).ready(function() {
     $.ajax({ cache: false
            , type: "GET" // XXX should be POST
            , dataType: "json"
-           , url: "/join"
+           , url: getEndpoint("/join")
            , data: { nick: nick }
            , error: function () {
                alert("error connecting to server");
@@ -481,6 +506,11 @@ $(document).ready(function() {
   // update the daemon uptime every 10 seconds
   setInterval(function () {
     updateUptime();
+  }, 10*1000);
+
+  setInterval(function () {
+    updateChatRoom();
+
   }, 10*1000);
 
   if (CONFIG.debug) {
@@ -503,5 +533,5 @@ $(document).ready(function() {
 
 //if we can, notify the server that we're going away.
 $(window).unload(function () {
-  jQuery.get("/part", {id: CONFIG.id}, function (data) { }, "json");
+  jQuery.get(getEndpoint("/part"), {id: CONFIG.id}, function (data) { }, "json");
 });

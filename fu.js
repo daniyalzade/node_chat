@@ -18,11 +18,15 @@ function notFound(req, res) {
 var getMap = {};
 
 fu.get = function (path, handler) {
+  console.log('path ' + path);
   getMap[path] = handler;
 };
+
 var server = createServer(function (req, res) {
   if (req.method === "GET" || req.method === "HEAD") {
-    var handler = getMap[url.parse(req.url).pathname] || notFound;
+    var pathElems = url.parse(req.url).pathname.split('/');
+    var path = '/' + pathElems[pathElems.length - 1];
+    var handler = getMap[path] || notFound;
 
     res.simpleText = function (code, body) {
       res.writeHead(code, { "Content-Type": "text/plain"

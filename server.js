@@ -1,3 +1,5 @@
+var url = require("url");
+
 HOST = null; // localhost
 PORT = 8001;
 
@@ -19,7 +21,21 @@ var fu = require("./fu"),
 var MESSAGE_BACKLOG = 200,
     SESSION_TIMEOUT = 60 * 1000;
 
-var channel = new function () {
+channels = {};
+
+function getChannelFromReq(req) {
+  return getChannel(getChatRoom(req));
+}
+
+function getChannel(chatRoom) {
+  if (!channels[chatRoom]) {
+    channels[chatRoom] = new Channel();
+  }
+  var channel = channels[chatRoom];
+  return channel;
+}
+
+var Channel = function () {
   var messages = [],
       callbacks = [];
 
@@ -77,12 +93,36 @@ var channel = new function () {
   }, 3000);
 };
 
-var sessions = {};
+var allSessions = {};
 
-function createSession (nick) {
+function getChatRoom(req) {
+  var pathElems = url.parse(req.url).pathname.split('/');
+  pathElems = pathElems.filter(function(elem) { return elem.length } );
+  var chatRoom = pathElems[0];
+  console.log('chatRoom: ' + chatRoom + ', pathElems:' + pathElems);
+  return chatRoom;
+}
+
+function getSessionsFromReq(req) {
+  return getSessions(getChatRoom(req))
+}
+
+function getSessions(chatRoom) {
+  if (!allSessions[chatRoom]) {
+    console.log('creating new session: ' + chatRoom);
+    allSessions[chatRoom] = {};
+  }
+  var sessions = allSessions[chatRoom];
+  console.log('returning sessions ' + allSessions[chatRoom] + ', cr: ' + chatRoom + ', allSessions: ' + allSessions);
+  return sessions;
+}
+
+function createSession (chatRoom, nick) {
   if (nick.length > 50) return null;
   if (/[^\w_\-^!]/.exec(nick)) return null;
 
+  
+  var sessions = getSessions(chatRoom);
   for (var i in sessions) {
     var session = sessions[i];
     if (session && session.nick === nick) return null;
@@ -98,7 +138,7 @@ function createSession (nick) {
     },
 
     destroy: function () {
-      channel.appendMessage(session.nick, "part");
+      getChannel(chatRoom).appendMessage(session.nick, "part");
       delete sessions[session.id];
     }
   };
@@ -110,12 +150,14 @@ function createSession (nick) {
 // interval to kill off old sessions
 setInterval(function () {
   var now = new Date();
-  for (var id in sessions) {
-    if (!sessions.hasOwnProperty(id)) continue;
-    var session = sessions[id];
+  for (var sessions in allSessions) {
+    for (var id in sessions) {
+      if (!sessions.hasOwnProperty(id)) continue;
+      var session = sessions[id];
 
-    if (now - session.timestamp > SESSION_TIMEOUT) {
-      session.destroy();
+      if (now - session.timestamp > SESSION_TIMEOUT) {
+        session.destroy();
+      }
     }
   }
 }, 1000);
@@ -130,6 +172,7 @@ fu.get("/jquery-1.2.6.min.js", fu.staticHandler("jquery-1.2.6.min.js"));
 
 fu.get("/who", function (req, res) {
   var nicks = [];
+  var sessions = getSessionsFromReq(req);
   for (var id in sessions) {
     if (!sessions.hasOwnProperty(id)) continue;
     var session = sessions[id];
@@ -146,7 +189,7 @@ fu.get("/join", function (req, res) {
     res.simpleJSON(400, {error: "Bad nick."});
     return;
   }
-  var session = createSession(nick);
+  var session = createSession(getChatRoom(req), nick);
   if (session == null) {
     res.simpleJSON(400, {error: "Nick in use"});
     return;
@@ -154,7 +197,7 @@ fu.get("/join", function (req, res) {
 
   //sys.puts("connection: " + nick + "@" + res.connection.remoteAddress);
 
-  channel.appendMessage(session.nick, "join");
+  getChannelFromReq(req).appendMessage(session.nick, "join");
   res.simpleJSON(200, { id: session.id
                       , nick: session.nick
                       , rss: mem.rss
@@ -165,38 +208,40 @@ fu.get("/join", function (req, res) {
 fu.get("/part", function (req, res) {
   var id = qs.parse(url.parse(req.url).query).id;
   var session;
-  if (id && sessions[id]) {
-    session = sessions[id];
+  if (id && getSessionsFromReq(req)[id]) {
+    session = getSessionsFromReq(req)[id];
     session.destroy();
   }
   res.simpleJSON(200, { rss: mem.rss });
 });
 
 fu.get("/recv", function (req, res) {
+  console.log('recv');
   if (!qs.parse(url.parse(req.url).query).since) {
     res.simpleJSON(400, { error: "Must supply since parameter" });
     return;
   }
   var id = qs.parse(url.parse(req.url).query).id;
   var session;
-  if (id && sessions[id]) {
-    session = sessions[id];
+  if (id && getSessionsFromReq(req)[id]) {
+    session = getSessionsFromReq(req)[id];
     session.poke();
   }
 
   var since = parseInt(qs.parse(url.parse(req.url).query).since, 10);
 
-  channel.query(since, function (messages) {
+  getChannelFromReq(req).query(since, function (messages) {
     if (session) session.poke();
     res.simpleJSON(200, { messages: messages, rss: mem.rss });
   });
 });
 
 fu.get("/send", function (req, res) {
+  console.log('send');
   var id = qs.parse(url.parse(req.url).query).id;
   var text = qs.parse(url.parse(req.url).query).text;
 
-  var session = sessions[id];
+  var session = getSessionsFromReq(req)[id];
   if (!session || !text) {
     res.simpleJSON(400, { error: "No such session id" });
     return;
@@ -204,6 +249,10 @@ fu.get("/send", function (req, res) {
 
   session.poke();
 
-  channel.appendMessage(session.nick, "msg", text);
+  getChannelFromReq(req).appendMessage(session.nick, "msg", text);
   res.simpleJSON(200, { rss: mem.rss });
+});
+
+fu.get("/dump", function (req, res) {
+  res.simpleJSON(200, { allSessions: allSessions});
 });
