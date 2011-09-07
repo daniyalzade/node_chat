@@ -18,7 +18,6 @@ function notFound(req, res) {
 var getMap = {};
 
 fu.get = function (path, handler) {
-  console.log('path ' + path);
   getMap[path] = handler;
 };
 

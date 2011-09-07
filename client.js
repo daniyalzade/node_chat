@@ -352,6 +352,10 @@ function send(msg) {
 
 //Transition the page to the state that prompts the user for a nickname
 function showConnect () {
+  var chatRoom = getChatRoom();
+  if(getChatRoom(true)) {
+    $("#chatroomdiv").hide();
+  }
   $("#connect").show();
   $("#loading").hide();
   $("#toolbar").hide();
@@ -406,6 +410,7 @@ function onConnect (session) {
   updateRSS();
   updateUptime();
   updateChatRoom();
+  longPoll();
 
   //update the UI to show the chat
   showChat(CONFIG.nick);
@@ -430,7 +435,7 @@ function outputUsers () {
   return false;
 }
 
-function getChatRoom() {
+function getChatRoom(skipForm) {
   var vars = [], hash;
   var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
   for(var i = 0; i < hashes.length; i++)
@@ -439,7 +444,9 @@ function getChatRoom() {
     vars.push(hash[0]);
     vars[hash[0]] = hash[1];
   }
-  var chatRoom = vars['chatRoom'] || '';
+  var formValue = skipForm ? "" : $('#chatRoomInput').attr('value')
+  var chatRoom = vars['chatRoom'] || formValue || '';
+//  console.log('chatRoom: ' + chatRoom);
   return chatRoom;
 }
 
@@ -525,7 +532,7 @@ $(document).ready(function() {
   //begin listening for updates right away
   //interestingly, we don't need to join a room to get its updates
   //we just don't show the chat stream to the user until we create a session
-  longPoll();
+//  longPoll();
 
   showConnect();
 });

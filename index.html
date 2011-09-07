@@ -8,12 +8,20 @@
   <body>
     <div id="app">
       <div id="connect">
-        <form id="form" action="#">
+        <form id="form" class="form" action="#">
           <fieldset> 
-            your name:  
-            <input id="nickInput" class="text"type="text" name="nick" value=""/>
+              <div id='chatroomdiv' class='formcontainer'>
+              <label for="chatRoom">chat room</label>
+            <input id="chatRoomInput" class="input" type="text" name="chatRoom" value="" id="chatRoom"/>
+              </div>
+              <div class='formcontainer'>
+            <label for="nickInput">enter name</label>
+            <input id="nickInput" class="input" type="text" name="nick" value=""/>
+        </div>
+        <div class='buttonContainer'>
             <input id="connectButton" class="button" type="submit" name="" value="Join"/>
 
+        </div>
           </fieldset>
         </form>
       </div>

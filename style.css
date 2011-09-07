@@ -48,17 +48,11 @@ a:hover { text-decoration: underline; color: #aaa; }
   left: 50%;
   padding: 1em;
   margin-left: -175px;
-  margin-top: -50px;
+  margin-top: -80px;
 }
 
 #loading { z-index: 10000000; }
 #connect { z-index: 10000001; }
-
-#loading p, #connect fieldset  {
-  font-family: DejaVu Sans Mono, fixed; 
-  width: 30em;
-  border: 0;
-}
 
 #toolbar {
   position: fixed;
@@ -76,6 +70,39 @@ a:hover { text-decoration: underline; color: #aaa; }
   border-width: 0;
   outline-width: 0;
   clear: both;
+}
+
+.formcontainer {
+  height: 50px;
+}
+
+.input {
+  float: right;
+}
+
+.form {
+  width: 300px;
+}
+
+fieldset {
+  width: 300px;
+  border: none;
+}
+
+.form label{
+  float:left;
+  width:40%;
+  padding-top:0.4em;
+  text-align:left;
+}
+
+input {
+  vertical-align: middle;
+  font-size:90%;
+}
+
+.buttonContainer {
+  text-align: right;
 }
 
 #log {
